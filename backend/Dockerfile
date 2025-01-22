@@ -2,7 +2,7 @@
 FROM python:3.11
 
 # Copy requirements dan file Python ke dalam container
-COPY backend/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 WORKDIR /app
 
 # Install dependencies

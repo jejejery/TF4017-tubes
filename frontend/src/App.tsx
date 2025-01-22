@@ -14,7 +14,7 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState('Connecting');
 
   // MQTT Configuration
-  const MQTT_BROKER = 'ws://192.168.250.105:9001/mqtt';
+  const MQTT_BROKER = 'ws://localhost:9001/mqtt';
   const MQTT_TOPIC = 'sensor/temperature';
   
   useEffect(() => {
