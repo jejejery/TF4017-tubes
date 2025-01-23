@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 
@@ -13,59 +13,62 @@ ChartJS.register(
   Filler
 );
 
-function RealTimeChart() {
-  const setPoint = 40;
-  const upperThres = 45;
-  const bottomThres = 35;
+interface ChartImageProps {
+  temperatureData: {
+    hot: number[];
+    cold: number[];
+  };
+}
 
-  const [chartData, setChartData] = useState({
+function RealTimeChart({ temperatureData }: ChartImageProps) {
+  const setPoint = 25;
+  const upperThres = 35;
+  const bottomThres = 30;
+
+  const chartData = {
     labels: ["1", "2", "3", "4", "5"],
     datasets: [
       {
-        label: "Sensor 1",
-        borderColor: "rgba(255, 0, 255, 1)",
+        label: "Hot Temperature",
+        borderColor: "rgba(255, 99, 132, 0.8)", // Softened hot color
         borderWidth: 2,
-        data: [45, 30, 66, 39, 60],
+        data: temperatureData.hot,
         fill: true,
         backgroundColor: (context) => {
           const chart = context.chart;
           const { ctx, chartArea } = chart;
 
-          if (!chartArea) {
-            return null;
-          }
+          if (!chartArea) return null;
 
           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, 'rgba(255, 0, 255, 0)');
-          gradient.addColorStop(1, 'rgba(255, 0, 255, 0.5)');
+          gradient.addColorStop(0, 'rgba(255, 99, 132, 0.1)');
+          gradient.addColorStop(1, 'rgba(255, 99, 132, 0.3)');
           return gradient;
         },
         tension: 0.4
       },
       {
-        label: "Sensor 2",
-        borderColor: "rgb(34,197,94, 1)",
+        label: "Cold Temperature",
+        borderColor: "rgba(54, 162, 235, 0.8)", // Softened cold color
         borderWidth: 2,
-        data: [20, 49, 30, 55, 12],
+        data: temperatureData.cold,
         fill: true,
         backgroundColor: (context) => {
           const chart = context.chart;
           const { ctx, chartArea } = chart;
 
-          if (!chartArea) {
-            return null;
-          }
+          if (!chartArea) return null;
 
           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, 'rgba(34, 197, 94, 0)');
-          gradient.addColorStop(1, 'rgba(34, 197, 94, 0.5)');
+          gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
+          gradient.addColorStop(1, 'rgba(54, 162, 235, 0.3)');
           return gradient;
         },
         tension: 0.4
       },
       {
         label: "Upper Threshold",
-        borderColor: "rgba(244, 67, 54, 1)",
+        borderColor: "rgba(255, 255, 255, 0.5)", // Softer white threshold
         borderWidth: 2,
         borderDash: [10, 5],
         data: Array(5).fill(upperThres),
@@ -74,7 +77,7 @@ function RealTimeChart() {
       },
       {
         label: "Bottom Threshold",
-        borderColor: "rgba(244, 67, 54, 1)",
+        borderColor: "rgba(255, 255, 255, 0.5)", // Softer white threshold
         borderWidth: 2,
         borderDash: [10, 5],
         data: Array(5).fill(bottomThres),
@@ -84,14 +87,14 @@ function RealTimeChart() {
       },
       {
         label: "Set-point",
-        borderColor: "rgba(244, 67, 54, 1)",
+        borderColor: "rgba(255, 255, 255, 0.7)", // Slightly more visible set-point
         borderWidth: 2,
         data: Array(5).fill(setPoint),
         fill: false,
         pointRadius: 0
       }
     ]
-  });
+  };
 
   const chartOptions = {
     responsive: true,
@@ -100,30 +103,38 @@ function RealTimeChart() {
       title: {
         display: true,
         text: 'Real-Time Temperature History',
-        color: 'white',
+        color: 'rgba(255, 255, 255, 0.8)',
         font: {
           size: 12,
+          weight: 'bold',
           responsiveSize: true
         }
       },
       legend: {
         labels: {
-          color: 'white',
+          color: 'rgba(255, 255, 255, 0.7)',
           font: {
             size: 8,
             responsiveSize: true
           }
         }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        titleColor: 'white',
+        bodyColor: 'rgba(255, 255, 255, 0.8)'
       }
     },
     scales: {
       x: {
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
-          borderColor: 'white'
+          borderColor: 'rgba(255, 255, 255, 0.2)'
         },
         ticks: {
-          color: "white",
+          color: "rgba(255, 255, 255, 0.7)",
           font: {
             size: 10,
             responsiveSize: true
@@ -133,10 +144,10 @@ function RealTimeChart() {
       y: {
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
-          borderColor: 'white'
+          borderColor: 'rgba(255, 255, 255, 0.2)'
         },
         ticks: {
-          color: "white",
+          color: "rgba(255, 255, 255, 0.7)",
           font: {
             size: 10,
             responsiveSize: true
@@ -146,43 +157,8 @@ function RealTimeChart() {
     }
   };
 
-  // Function to manage data queue
-  const pushAndPopData = (dataQueue, newValue, maxLength) => {
-    const updatedQueue = [...dataQueue];
-    if (updatedQueue.length >= maxLength) {
-      updatedQueue.shift(); // Remove first element
-    }
-    updatedQueue.push(newValue);
-    return updatedQueue;
-  };
-
-  // Update data every second
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setChartData(prevData => {
-        const newDatasets = prevData.datasets.map(dataset => {
-          if (dataset.label.includes("Sensor")) {
-            const newValue = Math.floor(Math.random() * (70 - 20 + 1)) + 20; // Random between 20 and 70
-            return {
-              ...dataset,
-              data: pushAndPopData(dataset.data, newValue, 5)
-            };
-          }
-          return dataset;
-        });
-
-        return {
-          ...prevData,
-          datasets: newDatasets
-        };
-      });
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full bg-black bg-opacity-5 backdrop-blur-md rounded-lg">
       <Line
         options={chartOptions}
         data={chartData}

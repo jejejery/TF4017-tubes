@@ -8,9 +8,14 @@ import ThermoAnimation from './thermometer';
 import ChartImage from './chart';
 
 function App() {
-  const [temperatureHot, setTemperatureHot] = useState(18);
+  const [temperatureHot, setTemperatureHot] = useState(0);
+  const [temperatureCold, setTemperatureCold] = useState(0);
+  const [temperatureData, setTemperatureData] = useState({
+    hot: new Array(5).fill(0),
+    cold: new Array(5).fill(0)
+  });
   const [isFanOn, setIsFanOn] = useState(true);
-  const [mqttClient, setMqttClient] = useState<mqtt.MqttClient | null>(null);
+  const [mqttClient, setMqttClient] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('Connecting');
 
   // MQTT Configuration
@@ -25,19 +30,14 @@ function App() {
       clean: true,
       reconnectPeriod: 1000,
       connectTimeout: 30 * 1000,
-      
-      // Add explicit WebSocket options
       protocol: 'ws',
-      path: '/mqtt',  // Many brokers use a specific path for WebSocket
+      path: '/mqtt',
     });
     
-    // MQTT Event Handlers
     client.on('connect', () => {
-      setConnectionStatus('Connecting');
-      console.log('MQTT Connected');
       setConnectionStatus('Connected');
+      console.log('MQTT Connected');
       
-      // Subscribe to temperature topic
       client.subscribe(MQTT_TOPIC_TEMP_HOT, (err) => {
         if (err) {
           console.error('Subscription error:', err);
@@ -60,12 +60,38 @@ function App() {
         try {
           const temp = parseFloat(message.toString());
           if (!isNaN(temp)) {
+            setTemperatureData(prevData => {
+              const newHotTemps = [...prevData.hot];
+              if (newHotTemps.length >= 5) {
+                newHotTemps.shift();
+              }
+              newHotTemps.push(temp);
+              return { ...prevData, hot: newHotTemps };
+            });
             setTemperatureHot(temp);
           }
         } catch (error) {
           console.error('Error parsing temperature:', error);
         }
       }
+      else if (topic == MQTT_TOPIC_TEMP_COLD){
+        try {
+          const temp = parseFloat(message.toString());
+          if (!isNaN(temp)) {
+            setTemperatureData(prevData => {
+              const newColdTemps = [...prevData.cold];
+              if (newColdTemps.length >= 5) {
+                newColdTemps.shift();
+              }
+              newColdTemps.push(temp);
+              return { ...prevData, cold: newColdTemps };
+            });
+            setTemperatureCold(temp);
+          }
+        } catch (error) {
+          console.error('Error parsing temperature:', error);
+        }
+      }      
       else if (topic == MQTT_TOPIC_FAN){
         try{
           const fanState = (message.toString()) == "True"
@@ -76,22 +102,12 @@ function App() {
       }
     });
     
-    // More detailed error logging
     client.on('error', (err) => {
       console.error('Full MQTT Connection Error:', err);
-      console.error('Error Details:', {
-        message: err.message,
-        name: err.name,
-        stack: err.stack
-      });
       setConnectionStatus('Error');
     });
     
-    // client.on('disconnect', () => {
-    //   setConnectionStatus('Disconnected');
-    // });
-    
-    setMqttClient(client as mqtt.MqttClient);
+    setMqttClient(client);
 
     // Cleanup on component unmount
     return () => {
@@ -104,83 +120,82 @@ function App() {
     };
   }, []);
 
-  // const toggleFan = () => {
-  //   setIsFanOn(!isFanOn);
-  // };
-
   return (
-    <div className="bg-gray-700 text-white p-2 sm:p-4 flex flex-col items-center w-full min-h-screen">
-      {/* TITLE */}
-      <div className="pb-4 sm:pb-8 flex flex-row gap-x-2 sm:gap-x-4 items-center">
-        <p className="text-xl sm:text-2xl md:text-4xl lg:text-6xl font-bold">Temperature Monitoring System</p>
-        <ThermoAnimation />
-      </div>
+    <div className="h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-2 overflow-hidden">
+      <div className="container mx-auto max-w-7xl h-[95%]">
+        <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white border-opacity-10 p-2 sm:p-4 h-full flex flex-col">
+          {/* TITLE */}
+          <div className="flex flex-row items-center justify-center mb-2">
+            <p className="text-4xl sm:text-2xl md:text-3xl font-bold text-white text-center">
+              Temperature Monitoring System
+            </p>
+            <ThermoAnimation />
+          </div>
 
-      {/* Main Container */}
-      <div className="w-full flex flex-col gap-1">
-        {/* Status Bar */}
-        <div className="flex flex-col md:flex-row justify-between px-1 sm:px-2 md:px-14 text-xs sm:text-sm md:text-lg font-semibold">
-          <div>
-            Current Hot Temperature: <span className="text-blue-400">{temperatureHot}°C</span>
-          </div>
-          <div>
-            MQTT Status: {" "}
-            <span className={
-              connectionStatus === 'Connected' 
-                ? "text-green-500" 
-                : connectionStatus === 'Error' 
-                  ? "text-red-500" 
-                  : "text-yellow-500"
-            }>
-              {connectionStatus}
-            </span>
-          </div>
-          <div>
-            Fan Status: {" "}
-            <span className={isFanOn ? "text-green-500" : "text-red-500"}>
-              {isFanOn ? "ON" : "OFF"}
-            </span>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex flex-col lg:flex-row justify-between px-2 sm:px-4 lg:px-8 gap-4 sm:gap-8 lg:gap-0">
-          {/* Temperature Monitoring Section */}
-          <div className="w-full lg:w-2/3 bg-gray-800 rounded-lg p-4 sm:p-8">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-8 text-center">Temperature Monitoring</h2>
-            <div className="flex flex-col lg:flex-row justify-between items-center gap-x-4">
-              <div className="flex flex-col items-center mb-4 sm:mb-8 lg:mb-0">
-                <Thermometer
-                  theme="dark"
-                  value={temperatureHot}
-                  max="100"
-                  steps="3"
-                  format="°C"
-                  size="large"
-                  height="300"
-                />
+          {/* Rest of the code remains the same */}
+          {/* Status Bar */}
+          <div className="bg-white bg-opacity-5 backdrop-blur-md rounded-lg p-1 sm:p-2 mb-2 border border-white border-opacity-10">
+            <div className="flex flex-col md:flex-row justify-between text-xs sm:text-sm font-semibold text-white space-y-1 md:space-y-0">
+              <div>
+                Hot Temperature: <span className="text-red-400">{temperatureHot}°C</span>
               </div>
-              <div className="w-full lg:w-[45vw] h-[30vh] sm:h-[40vh] lg:h-[50vh]">
-                <ChartImage />
+              <div>
+                Cold Temperature: <span className="text-blue-400">{temperatureCold}°C</span>
+              </div>
+              <div>
+                MQTT Status: {" "}
+                <span className={
+                  connectionStatus === 'Connected' 
+                    ? "text-green-500" 
+                    : connectionStatus === 'Error' 
+                      ? "text-red-500" 
+                      : "text-yellow-500"
+                }>
+                  {connectionStatus}
+                </span>
+              </div>
+              <div>
+                Fan Status: {" "}
+                <span className={isFanOn ? "text-green-500" : "text-red-500"}>
+                  {isFanOn ? "ON" : "OFF"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Fan Controller Section */}
-          <div className="w-full lg:w-1/3 bg-gray-800 rounded-lg p-4 sm:p-8 lg:ml-8">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-8 text-center">Fan Controller</h2>
-            <div className="flex flex-col items-center">
-              <div className="mb-4 sm:mb-8">
-                <FanAnimation on={isFanOn}/>
+          {/* Main Content */}
+          <div className="flex flex-row justify-between gap-2 h-[calc(100%-120px)]">
+            {/* Temperature Monitoring Section */}
+            <div className="w-full bg-white bg-opacity-5 backdrop-blur-md rounded-lg p-2 border border-white border-opacity-10 flex flex-col">
+              <div className="flex flex-row justify-between items-center h-full">
+                <div className="flex flex-col items-center gap-y-4 w-1/6">
+                  <Thermometer
+                    theme="dark"
+                    value={temperatureHot}
+                    max="40"
+                    steps="3"
+                    format="°C"
+                    size="large"
+                    height="300"
+                  />
+                  <p className="text-white text-sm font-bold"><i>Hot Thermometer</i></p>
+                </div>
+                <div className="w-4/6 h-full">
+                  <ChartImage temperatureData={temperatureData} />
+                </div>
+                <div className="flex flex-col items-center gap-y-4 w-1/6">
+                  <Thermometer
+                    theme="dark"
+                    value={temperatureCold}
+                    max="40"
+                    steps="3"
+                    format="°C"
+                    size="large"
+                    height="300"
+                  />
+                  <p className="text-white text-sm font-bold"><i>Cold Thermometer</i></p>
+                </div>
               </div>
-              {/* <button
-                onClick={toggleFan}
-                className={`${
-                  isFanOn ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
-                } text-white px-6 sm:px-12 py-2 sm:py-3 rounded-lg font-bold transition duration-300 ease-in-out text-sm sm:text-base`}
-              >
-                {isFanOn ? 'Turn Off' : 'Turn On'}
-              </button> */}
             </div>
           </div>
         </div>
