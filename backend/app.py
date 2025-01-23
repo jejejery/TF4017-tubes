@@ -13,7 +13,10 @@ influxdb_bucket = "sensordata"
 # Konfigurasi broker MQTT
 broker = "mqtt-broker"  # Sesuai dengan nama service di docker-compose.yml
 port = 1884
-topic = "sensor/temperature"  # Ganti topik sesuai kebutuhan
+topic_hot = "sensor/temperature_hot"
+topic_cold = "sensor/temperature_cold"
+topic_fan = "fan"
+
 
 def _main():
     """Inisiasi"""
@@ -38,40 +41,49 @@ def _main():
     publish_time = time.time()
 
     # global variable config
-    temperature = 0
-    message = f"{temperature} °C"
+    temperature_hot = 0
+    temperature_cold = 0
+    fan = False
 
     while True:
         
-        # temperature = round(random.uniform(25.0, 30.0), 2)
+        # temperature_hot = round(random.uniform(25.0, 30.0), 2)
 
 
         if(time.time() - sensor_time > 1): # 1 detik sekali:
             # renew the sensor time
             sensor_time = time.time()
 
-            # Random temperature for dummy data
-            temperature = round(random.uniform(25.0, 30.0), 2)
-            # get the real temperature using OMRON FINS protocol
-            # temperature = int(plc.read_parameter("panas"), 16)
+            # Random temperature_hot for dummy data
+            # temperature_hot = round(random.uniform(25.0, 30.0), 2)
+            # get the real temperature_hot using OMRON FINS protocol
+            temperature_hot = int(plc.read_parameter("panas"), 16)
+            temperature_cold = int(plc.read_parameter("dingin"), 16)
+            fan = (int(plc.read_parameter("fan"), 16) == 1)
             
             # Simpan data ke InfluxDB
-            point = Point("temperature") \
+            point = Point("temperature_hot") \
                 .tag("sensor", "PLC_1") \
-                .field("value", temperature)
+                .field("value", temperature_hot)
             write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
-            print(f"Data written to InfluxDB: {temperature} °C")
+            print(f"Data Temperature Hot written to InfluxDB: {temperature_hot} °C")
+
+            # Simpan data ke InfluxDB
+            point = Point("temperature_cold") \
+                .tag("sensor", "PLC_1") \
+                .field("value", temperature_cold)
+            write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
+            print(f"Data Temperature Cold written to InfluxDB: {temperature_cold} °C")
 
         
         if(time.time() - publish_time > 5): # 5 detik sekali ke mqtt
              # renew the publish time
             publish_time = time.time()
-            #message
-            message = f"{temperature} °C"
 
             # Publish data ke MQTT
-            client.publish(topic, message)
-            print(f"Published: {message} to topic {topic}")
+            client.publish(topic_hot, f"{temperature_hot} °C")
+            client.publish(topic_cold, f"{temperature_cold} °C")
+            client.publish(topic_fan, f"{fan}")
 
         
 if __name__ == "__main__":

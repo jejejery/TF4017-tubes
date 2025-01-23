@@ -61,9 +61,11 @@ class PLCHandler:
             str: Data dari alamat parameter dalam format hex.
         """
         parameter_map = {
-            "panas": "D1",
-            "dingin": "D2",
+            "panas": "D31",
+            "dingin": "D30",
+            "potentio": "D32",
             "hysteresis": "D20",
+            "fan" : "CIO100.02"
             # Tambahkan parameter lainnya di sini
         }
         address = parameter_map.get(parameter)

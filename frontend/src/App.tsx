@@ -8,14 +8,16 @@ import ThermoAnimation from './thermometer';
 import ChartImage from './chart';
 
 function App() {
-  const [temperature, setTemperature] = useState(18);
-  const [isFanOn, setIsFanOn] = useState(false);
+  const [temperatureHot, setTemperatureHot] = useState(18);
+  const [isFanOn, setIsFanOn] = useState(true);
   const [mqttClient, setMqttClient] = useState<mqtt.MqttClient | null>(null);
   const [connectionStatus, setConnectionStatus] = useState('Connecting');
 
   // MQTT Configuration
   const MQTT_BROKER = 'ws://localhost:9001/mqtt';
-  const MQTT_TOPIC = 'sensor/temperature';
+  const MQTT_TOPIC_TEMP_HOT = 'sensor/temperature_hot';
+  const MQTT_TOPIC_TEMP_COLD = 'sensor/temperature_cold';
+  const MQTT_TOPIC_FAN = 'fan';
   
   useEffect(() => {
     const client = mqtt.connect(MQTT_BROKER, {
@@ -36,7 +38,17 @@ function App() {
       setConnectionStatus('Connected');
       
       // Subscribe to temperature topic
-      client.subscribe(MQTT_TOPIC, (err) => {
+      client.subscribe(MQTT_TOPIC_TEMP_HOT, (err) => {
+        if (err) {
+          console.error('Subscription error:', err);
+        }
+      });
+      client.subscribe(MQTT_TOPIC_TEMP_COLD, (err) => {
+        if (err) {
+          console.error('Subscription error:', err);
+        }
+      });
+      client.subscribe(MQTT_TOPIC_FAN, (err) => {
         if (err) {
           console.error('Subscription error:', err);
         }
@@ -44,12 +56,20 @@ function App() {
     });
     
     client.on('message', (topic, message) => {
-      if (topic === MQTT_TOPIC) {
+      if (topic === MQTT_TOPIC_TEMP_HOT) {
         try {
           const temp = parseFloat(message.toString());
           if (!isNaN(temp)) {
-            setTemperature(temp);
+            setTemperatureHot(temp);
           }
+        } catch (error) {
+          console.error('Error parsing temperature:', error);
+        }
+      }
+      else if (topic == MQTT_TOPIC_FAN){
+        try{
+          const fanState = (message.toString()) == "True"
+          setIsFanOn(fanState)
         } catch (error) {
           console.error('Error parsing temperature:', error);
         }
@@ -76,15 +96,17 @@ function App() {
     // Cleanup on component unmount
     return () => {
       if (client) {
-        client.unsubscribe(MQTT_TOPIC);
+        client.unsubscribe(MQTT_TOPIC_TEMP_HOT);
+        client.unsubscribe(MQTT_TOPIC_TEMP_COLD);
+        client.unsubscribe(MQTT_TOPIC_FAN);
         client.end();
       }
     };
   }, []);
 
-  const toggleFan = () => {
-    setIsFanOn(!isFanOn);
-  };
+  // const toggleFan = () => {
+  //   setIsFanOn(!isFanOn);
+  // };
 
   return (
     <div className="bg-gray-700 text-white p-2 sm:p-4 flex flex-col items-center w-full min-h-screen">
@@ -99,7 +121,7 @@ function App() {
         {/* Status Bar */}
         <div className="flex flex-col md:flex-row justify-between px-1 sm:px-2 md:px-14 text-xs sm:text-sm md:text-lg font-semibold">
           <div>
-            Current Temperature: <span className="text-blue-400">{temperature}°C</span>
+            Current Hot Temperature: <span className="text-blue-400">{temperatureHot}°C</span>
           </div>
           <div>
             MQTT Status: {" "}
@@ -130,7 +152,7 @@ function App() {
               <div className="flex flex-col items-center mb-4 sm:mb-8 lg:mb-0">
                 <Thermometer
                   theme="dark"
-                  value={temperature}
+                  value={temperatureHot}
                   max="100"
                   steps="3"
                   format="°C"
@@ -149,7 +171,7 @@ function App() {
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-8 text-center">Fan Controller</h2>
             <div className="flex flex-col items-center">
               <div className="mb-4 sm:mb-8">
-                <FanAnimation />
+                <FanAnimation on={isFanOn}/>
               </div>
               {/* <button
                 onClick={toggleFan}
