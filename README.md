@@ -11,28 +11,53 @@ Repository ini dibuat untuk memenuhi tugas besar TF4017 - Industrial Internet of
 ## Table of Contents
 1. [Deskripsi Sistem](#deskripsi-sistem)
 2. [Tech Stack](#tech-stack)
-3. [Requirements](#requirements)
-4. [Cara Menjalankan](#cara-menjalankan)
-5. [Video Capture](#video-capture)
-6. [Anggota & Pembagian Tugas](#pembagian-tugas)
+3. [Cara Menjalankan](#cara-menjalankan)
+4. [Video Capture](#video-capture)
+5. [Anggota & Pembagian Tugas](#pembagian-tugas)
 
 <a name="deskripsi-sistem"></a>
 
 # Deskripsi Sistem
-Lorem Ipsum
+
+Tujuan dari tugas ini adalah merancang sistem desain database IoT yang terintegrasi untuk Kit Sistem Pengukuran Suhu dengan memanfaatkan komponen modern seperti `PLC, HMI, Docker, Script Python, ReactJS, dan InfluxDB`. Sistem ini dirancang untuk menggantikan `Node-Red` dengan `ReactJS` sebagai antarmuka pengguna, memberikan fleksibilitas dan pengalaman yang lebih interaktif. Selain itu, `PostgreSQL` akan digantikan oleh `InfluxDB` untuk mengoptimalkan pengelolaan data time-series yang lebih efisien.
 
 <a name="tech-stack"></a>
 
 # Tech Stacks
-Lorem Ipsum
-
-<a name="requirements"></a>
-
-# Requirements
+- Docker
+- Mosquito
+- InfluxDB
+- Python
+- ReactJS
+- EasyBuilder
+- CS Programmer
+- Tailwind CSS
 
 <a name="cara-menjalankan"></a>
 
 # Cara Menjalankan
+
+## 1. Persiapan Awal
+- Pastikan Anda sudah menginstal **Docker** di komputer Anda. Jika belum, silakan unduh dan instal dari [sini](https://www.docker.com/).
+- Clone repository ini ke komputer Anda dengan perintah berikut:
+  ```bash
+  git clone https://github.com/jejejery/TF4017-tubes.git
+  ```
+- Navigasi ke direktori proyek dengan perintah:
+  ```bash
+  cd TF4017-tubes
+  ```
+## 2. Konfigurasi Docker
+- Pastikan semua file yang diperlukan untuk Docker telah tersedia, termasuk `docker-compose.yml`
+- Apabila terdapat konfigurasi tambah (misalnya, kredensial atau port), sesuaikan file konfigurasi sebelum menjalankan sistem.
+## 3. Menjalankan Sistem
+- Jalankan perintah berikut pada terminal untuk membangun dan menjalankan layanan:
+```bash
+docker-compose up --build
+```
+## 4. Akses sistem
+- Setiap layanan yang telah dijalankan dapat diakses pada `port` tertentu sesuai dengan definisi pada `docker-compose.yml`
+
 
 <a name="video-capture"></a>
 
@@ -47,10 +72,10 @@ Lorem Ipsum
 
 |Nama|NIM|Pembagian Tugas|
 |----|-------|------|
-|Christoporus Nicholas | 13321001 | | 
-|Achriza Nurfarid | 13321023 | | 
-|Hero Hafizuddin Rahman | 13321055 | | 
-|Nico Oktavianto Aritonang | 13221088 | |
-|Shidqi Indy Izhari | 13521097 | |  
-|Jeremya Dharmawan Raharjo | 13521131 | | 
-|Mohammad Rifqi Farhansyah | 13521166 | Website HMI (front-end) |  
+|Christoporus Nicholas | 13321001 | PLC | 
+|Achriza Nurfarid | 13321023 | PLC | 
+|Hero Hafizuddin Rahman | 13321055 | Wiring | 
+|Nico Oktavianto Aritonang | 13221088 | Wiring |
+|Shidqi Indy Izhari | 13521097 | HMI |  
+|Jeremya Dharmawan Raharjo | 13521131 | Backend | 
+|Mohammad Rifqi Farhansyah | 13521166 | Front-end |  
